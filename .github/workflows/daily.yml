@@ -1,0 +1,66 @@
+name: Daily AI Agent Paper Digest
+
+on:
+  schedule:
+    # UTC 01:00 = 北京时间 09:00。GitHub 定时任务可能有数分钟延迟。
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      max_papers:
+        description: "最多打分的候选篇数（留空则使用 config.yaml）"
+        required: false
+        default: ""
+      dry_run:
+        description: "只生成存档，不推送飞书"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # 需要把 digests/ 下的存档提交回仓库
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run digest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          FEISHU_WEBHOOK_SECRET: ${{ secrets.FEISHU_WEBHOOK_SECRET }}
+          DAILY_TOKEN_BUDGET: ${{ vars.DAILY_TOKEN_BUDGET }}
+          SCORE_MODEL: ${{ vars.SCORE_MODEL }}
+          READ_MODEL: ${{ vars.READ_MODEL }}
+          MAX_PAPERS: ${{ inputs.max_papers }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=""
+          if [ -n "$MAX_PAPERS" ]; then args="$args --max-papers $MAX_PAPERS"; fi
+          if [ "$DRY_RUN" = "true" ]; then args="$args --dry-run"; fi
+          python -m src.main $args
+
+      - name: Commit digest archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add digests
+          if git diff --cached --quiet; then
+            echo "没有新的存档需要提交"
+          else
+            git commit -m "digest: $(TZ=Asia/Shanghai date +%F) AI Agent 论文日报"
+            git push
+          fi
