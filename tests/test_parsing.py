@@ -114,6 +114,14 @@ def test_github_links_dedup_and_strip_trailing_dot():
     assert links == ["https://github.com/a/b", "https://github.com/c/d"]
 
 
+def test_github_links_skip_arxiv_page_chrome():
+    texts = [
+        "https://github.com/arXiv/html_feedback https://github.com/Gen-Verse/DiscoveryRSI",
+        "https://github.com/brucemiller/LaTeXML",
+    ]
+    assert read.github_links(texts) == ["https://github.com/Gen-Verse/DiscoveryRSI"]
+
+
 def test_parse_analysis_normalizes_fields():
     text = '```json\n{"one_liner": "O", "core_problem": "P", "method": "M", "key_results": "R", "limitations": "L", "takeaways": "one"}\n```'
     analysis = read.parse_analysis(text)

@@ -45,6 +45,8 @@ BUCKETS = {
     "conclusion": re.compile(r"conclusion|discussion|limitation|future work", re.IGNORECASE),
 }
 GITHUB_RE = re.compile(r"https?://github\.com/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+")
+# arXiv HTML 页面模板里的非论文仓库（页脚的反馈与渲染工具），不是论文代码
+NON_PAPER_REPOS = {"arxiv/html_feedback", "brucemiller/latexml"}
 
 
 @dataclass
@@ -162,6 +164,9 @@ def github_links(texts: Iterable[str]) -> list[str]:
     for text in texts:
         for match in GITHUB_RE.finditer(text):
             url = match.group(0).rstrip(".")
+            owner, repo = url.split("github.com/", 1)[1].split("/", 1)
+            if f"{owner}/{repo}".lower() in NON_PAPER_REPOS:
+                continue
             seen.setdefault(url, None)
     return list(seen)
 
