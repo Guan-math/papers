@@ -68,6 +68,11 @@ pricing_usd_per_mtok:
   claude-sonnet-5-5:
     input: 2.00
     output: 10.00
+  # DeepSeek 按时段计价：这里取高峰价（UTC 01:00–04:00、06:00–10:00 周一至周五），
+  # 非高峰为一半；缓存未命中输入价。每日定时任务在 UTC 01:00 运行，落在高峰时段。
+  deepseek-flash:
+    input: 0.30
+    output: 1.20
 
 digest:
   dir: digests              # 存档目录，文件名为 YYYY-MM-DD.md
